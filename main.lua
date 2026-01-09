@@ -176,6 +176,54 @@ UIS.InputBegan:Connect(function(input, gp)
     end
 end)
 
+-- Main frame
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 320, 0, 400)
+mainFrame.Position = UDim2.new(0.5, -160, 0.5, -200)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = gui
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.BackgroundTransparency = 1
+title.Text = "HeraWare"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 20
+title.Parent = mainFrame
+
+-- Buttons
+local function makeButton(text, y, callback)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, -20, 0, 30)
+    b.Position = UDim2.new(0, 10, 0, y)
+    b.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+    b.TextColor3 = Color3.fromRGB(235, 235, 245)
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 14
+    b.Text = text
+    b.Parent = mainFrame
+    b.MouseButton1Click:Connect(callback)
+    return b
+end
+
+makeButton("Toggle Leg Firetouch", 60, function()
+    Reach.EnabledLegs = not Reach.EnabledLegs
+end)
+makeButton("Toggle Head Firetouch", 100, function()
+    Reach.EnabledHead = not Reach.EnabledHead
+end)
+makeButton("Enable Delay Reducer", 140, function()
+    setTimeRes(true)
+end)
+makeButton("Disable Delay Reducer", 180, function()
+    setTimeRes(false)
+end)
+makeButton("Trigger Elemental React", 220, triggerElementalReact)
+makeButton("Teleport Green Side", 260, tpGreen)
+makeButton("Teleport Blue Side", 300, tpBlue)
+
 -- Flash overlay for delay reducer cues
 local flash = Instance.new("Frame")
 flash.Size = UDim2.new(1, 0, 0, 3)
@@ -183,24 +231,4 @@ flash.Position = UDim2.new(0, 0, 0, 0)
 flash.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 flash.BackgroundTransparency = 1
 flash.BorderSizePixel = 0
-flash.Parent = gui
-_G.HeraFlash = flash
-
--- Toast for notifications
-local toast = Instance.new("TextLabel")
-toast.Size = UDim2.new(0, 296, 0, 22)
-toast.Position = UDim2.new(0, 12, 0, 104)
-toast.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-toast.TextColor3 = Color3.fromRGB(235, 235, 245)
-toast.Font = Enum.Font.GothamBold
-toast.TextSize = 14
-toast.Text = ""
-toast.Visible = false
-toast.Parent = gui
-_G.HeraToast = toast
-
-StarterGui:SetCore("SendNotification", {
-    Title = "HeraWare",
-    Text = "Loaded. Toggle UI with RightControl.",
-    Duration = 3
-})
+flash.Parent =
