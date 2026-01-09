@@ -1,6 +1,5 @@
 -- HeraWare: Educational Tester for TPS Ultimate
--- Features: Firetouch reach (legs/head), Time-Resolution Delay Reducer, Elemental React preview, Teleporter
--- Added: UI toggle keybind (set any key you want)
+-- Visible on execution, toggle with RightControl
 
 -- Services
 local Players = game:GetService("Players")
@@ -105,13 +104,12 @@ end)
 -- Time-Resolution Delay Reducer
 local TimeRes = {
     Enabled = false,
-    RateHz = 144,       -- high-frequency local timing loop
-    OffsetMs = 20,      -- tune relative to ping
+    OffsetMs = 20,
     PredictiveCue = true,
     Connection = nil
 }
 
-local function timeResStep(dt)
+local function timeResStep()
     if not TimeRes.PredictiveCue then return end
     local ball = findServerBall()
     if not (HRP and ball and ball:IsA("BasePart")) then return end
@@ -122,15 +120,13 @@ local function timeResStep(dt)
     local predicted = ball.Position + v * early
     local dist = (predicted - HRP.Position).Magnitude
 
-    if dist <= 4.2 then
-        if _G.HeraFlash then
-            TweenService:Create(_G.HeraFlash, TweenInfo.new(0.08), { BackgroundTransparency = 0.3 }):Play()
-            task.delay(0.08, function()
-                if _G.HeraFlash then
-                    TweenService:Create(_G.HeraFlash, TweenInfo.new(0.12), { BackgroundTransparency = 1 }):Play()
-                end
-            end)
-        end
+    if dist <= 4.2 and _G.HeraFlash then
+        TweenService:Create(_G.HeraFlash, TweenInfo.new(0.08), { BackgroundTransparency = 0.3 }):Play()
+        task.delay(0.08, function()
+            if _G.HeraFlash then
+                TweenService:Create(_G.HeraFlash, TweenInfo.new(0.12), { BackgroundTransparency = 1 }):Play()
+            end
+        end)
     end
 end
 
@@ -146,13 +142,11 @@ end
 
 -- Teleporter
 local function tpGreen()
-    local char = LP.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
+    local root = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
     if root then root.CFrame = CFrame.new(0, 175, 179) end
 end
 local function tpBlue()
-    local char = LP.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
+    local root = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
     if root then root.CFrame = CFrame.new(0.4269, 175.29, 377.40) end
 end
 
@@ -165,15 +159,16 @@ local function triggerElementalReact()
     end
 end
 
--- Minimal UI
+-- UI
 local gui = Instance.new("ScreenGui")
 gui.Name = "HeraWareGUI"
 gui.ResetOnSpawn = false
-gui.Enabled = true
+gui.Enabled = true -- always visible on execution
+gui.IgnoreGuiInset = true
 gui.Parent = LP:WaitForChild("PlayerGui")
 
--- Toggle UI Keybind
-local ToggleKey = Enum.KeyCode.RightControl -- default key
+-- Toggle UI with RightControl
+local ToggleKey = Enum.KeyCode.RightControl
 UIS.InputBegan:Connect(function(input, gp)
     if gp then return end
     if input.KeyCode == ToggleKey then
@@ -181,7 +176,7 @@ UIS.InputBegan:Connect(function(input, gp)
     end
 end)
 
--- Flash overlay used by reducer cues
+-- Flash overlay for delay reducer cues
 local flash = Instance.new("Frame")
 flash.Size = UDim2.new(1, 0, 0, 3)
 flash.Position = UDim2.new(0, 0, 0, 0)
@@ -206,6 +201,6 @@ _G.HeraToast = toast
 
 StarterGui:SetCore("SendNotification", {
     Title = "HeraWare",
-    Text = "Loaded: Educational Tester",
+    Text = "Loaded. Toggle UI with RightControl.",
     Duration = 3
 })
