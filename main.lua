@@ -1,5 +1,5 @@
--- HeraWare Aqua Edition (Rayfield UI)
--- UI shows immediately; toggle with RightControl
+-- HeraWare Aqua Edition (Orion UI)
+-- Visible immediately; toggle with RightControl
 -- Features: Leg/Head firetouch (match + practice balls), delay reducer predictive cues,
 -- Elemental React trainer (visual cue), teleporters, adjustable distances & offset.
 -- Placeholders: 5x stamina per day, level spoofing (non-exploit stubs).
@@ -30,13 +30,16 @@ local function safeFireTouch(part, ball)
     end)
 end
 
--- Ball finder (match + practice balls)
+-- ✅ Ball finder: match + practice balls
 local function findServerBall()
+    -- Match ball
     local sys = Workspace:FindFirstChild("TPSSystem")
     if sys then
         local tps = sys:FindFirstChild("TPS")
         if tps and tps:IsA("BasePart") then return tps end
     end
+
+    -- Practice balls
     local prac = Workspace:FindFirstChild("Practice")
     if prac then
         for _, c in ipairs(prac:GetDescendants()) do
@@ -45,13 +48,18 @@ local function findServerBall()
             end
         end
     end
+
+    -- Common names fallback
     for _, n in ipairs({"TPS","PSoccerBall","Ball","SoccerBall","Football"}) do
         local b = Workspace:FindFirstChild(n)
         if b and b:IsA("BasePart") then return b end
     end
+
+    -- Deep scan
     for _, d in ipairs(Workspace:GetDescendants()) do
         if d:IsA("BasePart") and d.Name:lower():find("ball") then return d end
     end
+
     return nil
 end
 
@@ -147,63 +155,67 @@ local function tpBlue()
     if root then root.CFrame = CFrame.new(0.4269, 175.29, 377.40) end
 end
 
--- ✅ Rayfield UI Library
-local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+-- ✅ Orion UI Library
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
 
-local Window = Rayfield:CreateWindow({
+OrionLib:MakeNotification({
     Name = "HeraWare Aqua",
-    LoadingTitle = "HeraWare",
-    LoadingSubtitle = "Rayfield UI Edition",
-    ConfigurationSaving = {
-        Enabled = true,
-        FolderName = "HeraWareConfig",
-        FileName = "HeraWare"
-    }
+    Content = "Loaded. Toggle UI with RightControl.",
+    Image = "rbxassetid://4483345998",
+    Time = 3
 })
 
+local Window = OrionLib:MakeWindow({Name = "HeraWare Aqua", HidePremium = false, SaveConfig = true, ConfigFolder = "HeraWare"})
+
 -- Tabs
-local MainTab = Window:CreateTab("Main", 4483362458)
-local MiscTab = Window:CreateTab("Misc", 4483362458)
-local SpooferTab = Window:CreateTab("Level Spoofer", 4483362458)
+local MainTab = Window:MakeTab({Name = "Main", Icon = "rbxassetid://4483345998", PremiumOnly = false})
+local MiscTab = Window:MakeTab({Name = "Misc", Icon = "rbxassetid://4483345998", PremiumOnly = false})
+local SpooferTab = Window:MakeTab({Name = "Level Spoofer", Icon = "rbxassetid://4483345998", PremiumOnly = false})
 
 -- Main features
-MainTab:CreateToggle({
+MainTab:AddToggle({
     Name = "Leg Firetouch",
-    CurrentValue = false,
+    Default = false,
     Callback = function(state)
         Reach.EnabledLegs = state
     end
 })
 
-MainTab:CreateToggle({
+MainTab:AddToggle({
     Name = "Head Firetouch",
-    CurrentValue = false,
+    Default = false,
     Callback = function(state)
         Reach.EnabledHead = state
     end
 })
 
-MainTab:CreateSlider({
+MainTab:AddSlider({
     Name = "Leg Reach Distance",
-    Range = {1, 10},
+    Min = 1,
+    Max = 10,
+    Default = Reach.DistLegs,
+    Color = Color3.fromRGB(0,180,200),
     Increment = 1,
-    CurrentValue = Reach.DistLegs,
+    ValueName = "studs",
     Callback = function(val)
         Reach.DistLegs = val
     end
 })
 
-MainTab:CreateSlider({
+MainTab:AddSlider({
     Name = "Head Reach Distance",
-    Range = {1, 10},
+    Min = 1,
+    Max = 10,
+    Default = Reach.DistHead,
+    Color = Color3.fromRGB(0,180,200),
     Increment = 1,
-    CurrentValue = Reach.DistHead,
+    ValueName = "studs",
     Callback = function(val)
         Reach.DistHead = val
     end
 })
 
-MainTab:CreateButton({
+MainTab:AddButton({
     Name = "Enable Delay Reducer",
     Callback = function()
         Trainer.ReducerEnabled = true
@@ -211,7 +223,7 @@ MainTab:CreateButton({
     end
 })
 
-MainTab:CreateButton({
+MainTab:AddButton({
     Name = "Disable Delay Reducer",
     Callback = function()
         Trainer.ReducerEnabled = false
@@ -219,47 +231,13 @@ MainTab:CreateButton({
     end
 })
 
-MainTab:CreateSlider({
+MainTab:AddSlider({
     Name = "Delay Offset (ms)",
-    Range = {0, 100},
+    Min = 0,
+    Max = 100,
+    Default = Trainer.OffsetMs,
+    Color = Color3.fromRGB(0,180,200),
     Increment = 5,
-    CurrentValue = Trainer.OffsetMs,
+    ValueName = "ms",
     Callback = function(val)
-        Trainer.OffsetMs = val
-    end
-})
-
-MainTab:CreateToggle({
-    Name = "Elemental React Trainer",
-    CurrentValue = false,
-    Callback = function(state)
-        Trainer.ReactCueEnabled = state
-        setTrainerLoop(state or Trainer.ReducerEnabled)
-    end
-})
-
-MainTab:CreateButton({
-    Name = "Teleport Green Side",
-    Callback = tpGreen
-})
-
-MainTab:CreateButton({
-    Name = "Teleport Blue Side",
-    Callback = tpBlue
-})
-
--- Misc tab
-MiscTab:CreateButton({
-    Name = "Get 5x Stamina (placeholder)",
-    Callback = function()
-        print("Stamina placeholder triggered")
-    end
-})
-
--- Spoofer tab
-SpooferTab:CreateButton({
-    Name = "Spoof Level (placeholder)",
-    Callback = function()
-        print("Level spoof placeholder triggered")
-    end
-})
+        Trainer.OffsetMs
