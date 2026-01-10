@@ -1,6 +1,5 @@
--- HeraWare Aqua Edition (Custom UI)
--- Features: FireTouch reach (match + practice balls), Elemental React ("light speed"), Hera React ("fast+smooth"),
--- Teleporters, Leg Resizer, Stamina placeholder, Level Spoofer placeholder.
+-- HeraWare Aqua Edition (Custom Sidebar UI)
+-- Matches the style of blur.xyz TPS Ultimate menu (sidebar + panels)
 
 -- Services
 local Players = game:GetService("Players")
@@ -58,8 +57,6 @@ local Reach = {
     EnabledHead = false,
     DistLegs = 3,
     DistHead = 5,
-    UseRightLeg = true,
-    UseLeftLeg = true,
 }
 
 local function runLegReach()
@@ -69,18 +66,10 @@ local function runLegReach()
     local char = LP.Character
     if not char then return end
 
-    if Reach.UseRightLeg then
-        local rl = char:FindFirstChild("Right Leg") or char:FindFirstChild("RightLowerLeg")
-        if rl and (ball.Position - rl.Position).Magnitude <= Reach.DistLegs then
-            safeFireTouch(rl, ball)
-        end
-    end
-    if Reach.UseLeftLeg then
-        local ll = char:FindFirstChild("Left Leg") or char:FindFirstChild("LeftLowerLeg")
-        if ll and (ball.Position - ll.Position).Magnitude <= Reach.DistLegs then
-            safeFireTouch(ll, ball)
-        end
-    end
+    local rl = char:FindFirstChild("Right Leg") or char:FindFirstChild("RightLowerLeg")
+    local ll = char:FindFirstChild("Left Leg") or char:FindFirstChild("LeftLowerLeg")
+    if rl and (ball.Position - rl.Position).Magnitude <= Reach.DistLegs then safeFireTouch(rl, ball) end
+    if ll and (ball.Position - ll.Position).Magnitude <= Reach.DistLegs then safeFireTouch(ll, ball) end
 end
 
 local function runHeadReach()
@@ -102,8 +91,8 @@ end)
 
 -- Reacts
 local Reacts = {
-    Elemental = false, -- "light speed" react
-    Hera = false,      -- "fast+smooth" react
+    Elemental = false, -- "light speed"
+    Hera = false,      -- "fast+smooth"
     OffsetMs = 20,
     Connection = nil
 }
@@ -111,18 +100,13 @@ local Reacts = {
 local function reactStep()
     local ball = findServerBall()
     if not (HRP and ball and ball:IsA("BasePart")) then return end
-
     local ping = getPingMs()
     local early = (ping / 2 + Reacts.OffsetMs) / 1000
     local predicted = ball.Position + ball.AssemblyLinearVelocity * early
     local dist = (predicted - HRP.Position).Magnitude
 
-    if Reacts.Elemental and dist <= 4.2 then
-        print("Elemental React (light speed) triggered")
-    end
-    if Reacts.Hera and dist <= 5.0 then
-        print("Hera React (fast+smooth) triggered")
-    end
+    if Reacts.Elemental and dist <= 4.2 then print("Elemental React (light speed)") end
+    if Reacts.Hera and dist <= 5.0 then print("Hera React (fast+smooth)") end
 end
 
 local function setReactLoop(state)
@@ -154,29 +138,76 @@ local function resizeLeg(legName, scale)
     end
 end
 
--- Custom UI Framework (simple sidebar style)
-local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
-local Window = OrionLib:MakeWindow({Name = "HeraWare Aqua", HidePremium = false, SaveConfig = true, ConfigFolder = "HeraWare"})
+-- === Custom UI (Sidebar style) ===
+local ScreenGui = Instance.new("ScreenGui", LP:WaitForChild("PlayerGui"))
+ScreenGui.Name = "HeraWareUI"
 
--- Tabs
-local FireTouchTab = Window:MakeTab({Name = "FireTouch", Icon = "rbxassetid://4483345998", PremiumOnly = false})
-local ReactsTab = Window:MakeTab({Name = "Reacts", Icon = "rbxassetid://4483345998", PremiumOnly = false})
-local ResizerTab = Window:MakeTab({Name = "Resizer", Icon = "rbxassetid://4483345998", PremiumOnly = false})
-local TeleportTab = Window:MakeTab({Name = "Teleportation", Icon = "rbxassetid://4483345998", PremiumOnly = false})
-local MiscTab = Window:MakeTab({Name = "Misc", Icon = "rbxassetid://4483345998", PremiumOnly = false})
-local SpooferTab = Window:MakeTab({Name = "Level Spoofer", Icon = "rbxassetid://4483345998", PremiumOnly = false})
+local Sidebar = Instance.new("Frame", ScreenGui)
+Sidebar.Size = UDim2.new(0, 150, 1, 0)
+Sidebar.BackgroundColor3 = Color3.fromRGB(30,30,30)
 
--- FireTouch options
-FireTouchTab:AddToggle({Name = "Leg Firetouch", Default = false, Callback = function(state) Reach.EnabledLegs = state end})
-FireTouchTab:AddToggle({Name = "Head Firetouch", Default = false, Callback = function(state) Reach.EnabledHead = state end})
-FireTouchTab:AddSlider({Name = "Leg Reach Distance", Min = 1, Max = 20, Default = Reach.DistLegs, Increment = 1, ValueName = "studs", Callback = function(val) Reach.DistLegs = val end})
-FireTouchTab:AddSlider({Name = "Head Reach Distance", Min = 1, Max = 20, Default = Reach.DistHead, Increment = 1, ValueName = "studs", Callback = function(val) Reach.DistHead = val end})
+local MainPanel = Instance.new("Frame", ScreenGui)
+MainPanel.Position = UDim2.new(0, 150, 0, 0)
+MainPanel.Size = UDim2.new(1, -150, 1, 0)
+MainPanel.BackgroundColor3 = Color3.fromRGB(45,45,45)
 
--- Reacts options
-ReactsTab:AddToggle({Name = "Elemental React (light speed)", Default = false, Callback = function(state) Reacts.Elemental = state; setReactLoop(state or Reacts.Hera) end})
-ReactsTab:AddToggle({Name = "Hera React (fast+smooth)", Default = false, Callback = function(state) Reacts.Hera = state; setReactLoop(state or Reacts.Elemental) end})
-ReactsTab:AddSlider({Name = "React Offset (ms)", Min = 0, Max = 100, Default = Reacts.OffsetMs, Increment = 5, ValueName = "ms", Callback = function(val) Reacts.OffsetMs = val end})
+-- Helper to switch tabs
+local currentTab
+local function showTab(tabFrame)
+    if currentTab then currentTab.Visible = false end
+    tabFrame.Visible = true
+    currentTab = tabFrame
+end
 
--- Resizer options
-ResizerTab:AddSlider({Name = "Resize Left Leg", Min = 1, Max = 20, Default = 5, Increment = 1, ValueName = "scale", Callback = function(val) resizeLeg("Left Leg", val) end})
-ResizerTab:AddSlider({Name = "Resize Right
+-- Create tab button
+local function makeTabButton(name, order, tabFrame)
+    local btn = Instance.new("TextButton", Sidebar)
+    btn.Size = UDim2.new(1,0,0,40)
+    btn.Position = UDim2.new(0,0,0,(order-1)*40)
+    btn.Text = name
+    btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.MouseButton1Click:Connect(function() showTab(tabFrame) end)
+end
+
+-- === FireTouch Tab ===
+local FireTouchFrame = Instance.new("Frame", MainPanel)
+FireTouchFrame.Size = UDim2.new(1,0,1,0)
+FireTouchFrame.Visible = false
+
+makeTabButton("FireTouch",1,FireTouchFrame)
+
+-- Example toggle (Leg Firetouch)
+local legToggle = Instance.new("TextButton", FireTouchFrame)
+legToggle.Size = UDim2.new(0,200,0,40)
+legToggle.Position = UDim2.new(0,20,0,20)
+legToggle.Text = "Leg Firetouch: OFF"
+legToggle.MouseButton1Click:Connect(function()
+    Reach.EnabledLegs = not Reach.EnabledLegs
+    legToggle.Text = "Leg Firetouch: "..(Reach.EnabledLegs and "ON" or "OFF")
+end)
+
+-- Head Firetouch toggle
+local headToggle = legToggle:Clone()
+headToggle.Parent = FireTouchFrame
+headToggle.Position = UDim2.new(0,20,0,70)
+headToggle.Text = "Head Firetouch: OFF"
+headToggle.MouseButton1Click:Connect(function()
+    Reach.EnabledHead = not Reach.EnabledHead
+    headToggle.Text = "Head Firetouch: "..(Reach.EnabledHead and "ON" or "OFF")
+end)
+
+-- === Reacts Tab ===
+local ReactsFrame = Instance.new("Frame", MainPanel)
+ReactsFrame.Size = UDim2.new(1,0,1,0)
+ReactsFrame.Visible = false
+makeTabButton("Reacts",2,ReactsFrame)
+
+local elemToggle = Instance.new("TextButton", ReactsFrame)
+elemToggle.Size = UDim2.new(0,200,0,40)
+elemToggle.Position = UDim2.new(0,20,0,20)
+elemToggle.Text = "Elemental React: OFF"
+elemToggle.MouseButton1Click:Connect(function()
+    Reacts.Elemental = not Reacts.Elemental
+    elemToggle.Text = "Elemental React: "..(Reacts.Elemental and "ON" or "OFF")
+    setReactLoop(Reacts.Elemental or Reacts
