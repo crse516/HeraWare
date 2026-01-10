@@ -1,6 +1,5 @@
 -- HeraWare Aqua Edition (Orion UI)
--- Visible immediately; toggle with RightControl
--- Features: Leg/Head firetouch (match + practice balls), delay reducer predictive cues,
+-- Features: Leg/Head firetouch (works on match + practice balls), delay reducer predictive cues,
 -- Elemental React trainer (visual cue), teleporters, adjustable distances & offset.
 -- Placeholders: 5x stamina per day, level spoofing (non-exploit stubs).
 
@@ -9,7 +8,6 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local Stats = game:GetService("Stats")
-local UIS = game:GetService("UserInputService")
 
 local LP = Players.LocalPlayer
 local Character = LP.Character or LP.CharacterAdded:Wait()
@@ -30,16 +28,13 @@ local function safeFireTouch(part, ball)
     end)
 end
 
--- ✅ Ball finder: match + practice balls
+-- Ball finder (match + practice balls)
 local function findServerBall()
-    -- Match ball
     local sys = Workspace:FindFirstChild("TPSSystem")
     if sys then
         local tps = sys:FindFirstChild("TPS")
         if tps and tps:IsA("BasePart") then return tps end
     end
-
-    -- Practice balls
     local prac = Workspace:FindFirstChild("Practice")
     if prac then
         for _, c in ipairs(prac:GetDescendants()) do
@@ -48,18 +43,13 @@ local function findServerBall()
             end
         end
     end
-
-    -- Common names fallback
     for _, n in ipairs({"TPS","PSoccerBall","Ball","SoccerBall","Football"}) do
         local b = Workspace:FindFirstChild(n)
         if b and b:IsA("BasePart") then return b end
     end
-
-    -- Deep scan
     for _, d in ipairs(Workspace:GetDescendants()) do
         if d:IsA("BasePart") and d.Name:lower():find("ball") then return d end
     end
-
     return nil
 end
 
@@ -111,7 +101,7 @@ RunService.RenderStepped:Connect(function()
     runHeadReach()
 end)
 
--- Delay reducer + React trainer (visual cues only)
+-- Delay reducer + React trainer
 local Trainer = {
     ReducerEnabled = false,
     ReactCueEnabled = false,
@@ -155,15 +145,8 @@ local function tpBlue()
     if root then root.CFrame = CFrame.new(0.4269, 175.29, 377.40) end
 end
 
--- ✅ Orion UI Library
-local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
-
-OrionLib:MakeNotification({
-    Name = "HeraWare Aqua",
-    Content = "Loaded. Toggle UI with RightControl.",
-    Image = "rbxassetid://4483345998",
-    Time = 3
-})
+-- Orion UI Library
+local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
 
 local Window = OrionLib:MakeWindow({Name = "HeraWare Aqua", HidePremium = false, SaveConfig = true, ConfigFolder = "HeraWare"})
 
@@ -240,4 +223,43 @@ MainTab:AddSlider({
     Increment = 5,
     ValueName = "ms",
     Callback = function(val)
-        Trainer.OffsetMs
+        Trainer.OffsetMs = val
+    end
+})
+
+MainTab:AddToggle({
+    Name = "Elemental React Trainer",
+    Default = false,
+    Callback = function(state)
+        Trainer.ReactCueEnabled = state
+        setTrainerLoop(state or Trainer.ReducerEnabled)
+    end
+})
+
+MainTab:AddButton({
+    Name = "Teleport Green Side",
+    Callback = tpGreen
+})
+
+MainTab:AddButton({
+    Name = "Teleport Blue Side",
+    Callback = tpBlue
+})
+
+-- Misc tab
+MiscTab:AddButton({
+    Name = "Get 5x Stamina (placeholder)",
+    Callback = function()
+        print("Stamina placeholder triggered")
+    end
+})
+
+-- Spoofer tab
+SpooferTab:AddButton({
+    Name = "Spoof Level (placeholder)",
+    Callback = function()
+        print("Level spoof placeholder triggered")
+    end
+})
+
+OrionLib:Init()
