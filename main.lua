@@ -1,11 +1,12 @@
--- HeraWare Aqua Edition (Custom Sidebar UI, visible in CoreGui)
+-- HeraWare Aqua Edition (Kavo UI)
+-- Features: FireTouch reach (match + practice balls), Elemental React ("light speed"), Hera React ("fast+smooth"),
+-- Teleporters, Leg Resizer, Stamina placeholder, Level Spoofer placeholder.
 
 -- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local Stats = game:GetService("Stats")
-local CoreGui = game:GetService("CoreGui")
 
 local LP = Players.LocalPlayer
 local Character = LP.Character or LP.CharacterAdded:Wait()
@@ -96,67 +97,45 @@ local function resizeLeg(legName,scale)
     if leg and leg:IsA("BasePart") then leg.Size=Vector3.new(leg.Size.X,scale,leg.Size.Z) end
 end
 
--- === UI ===
-local ScreenGui=Instance.new("ScreenGui",CoreGui)
-ScreenGui.Name="HeraWareUI"
+-- === Kavo UI ===
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+local Window = Library.CreateLib("HeraWare Aqua", "DarkTheme")
 
-local Sidebar=Instance.new("Frame",ScreenGui)
-Sidebar.Size=UDim2.new(0,150,1,0)
-Sidebar.BackgroundColor3=Color3.fromRGB(30,30,30)
+-- Tabs
+local FireTouchTab = Window:NewTab("FireTouch")
+local ReactsTab = Window:NewTab("Reacts")
+local ResizerTab = Window:NewTab("Resizer")
+local TeleportTab = Window:NewTab("Teleportation")
+local MiscTab = Window:NewTab("Misc")
+local SpooferTab = Window:NewTab("Level Spoofer")
 
-local MainPanel=Instance.new("Frame",ScreenGui)
-MainPanel.Position=UDim2.new(0,150,0,0)
-MainPanel.Size=UDim2.new(1,-150,1,0)
-MainPanel.BackgroundColor3=Color3.fromRGB(45,45,45)
+-- FireTouch
+local FireSection = FireTouchTab:NewSection("FireTouch Settings")
+FireSection:NewToggle("Leg Firetouch", "Toggle leg reach", function(v) Reach.EnabledLegs=v end)
+FireSection:NewToggle("Head Firetouch", "Toggle head reach", function(v) Reach.EnabledHead=v end)
+FireSection:NewSlider("Leg Reach Distance", "Adjust leg reach", 20, 1, function(v) Reach.DistLegs=v end)
+FireSection:NewSlider("Head Reach Distance", "Adjust head reach", 20, 1, function(v) Reach.DistHead=v end)
 
-local currentTab
-local function showTab(tabFrame)
-    if currentTab then currentTab.Visible=false end
-    tabFrame.Visible=true; currentTab=tabFrame
-end
+-- Reacts
+local ReactSection = ReactsTab:NewSection("React Modes")
+ReactSection:NewToggle("Elemental React (light speed)", "Fast react mode", function(v) Reacts.Elemental=v; setReactLoop(v or Reacts.Hera) end)
+ReactSection:NewToggle("Hera React (fast+smooth)", "Smooth react mode", function(v) Reacts.Hera=v; setReactLoop(v or Reacts.Elemental) end)
+ReactSection:NewSlider("React Offset (ms)", "Adjust offset", 100, 0, function(v) Reacts.OffsetMs=v end)
 
-local function makeTabButton(name,order,tabFrame)
-    local btn=Instance.new("TextButton",Sidebar)
-    btn.Size=UDim2.new(1,0,0,40)
-    btn.Position=UDim2.new(0,0,0,(order-1)*40)
-    btn.Text=name; btn.Font=Enum.Font.SourceSansBold; btn.TextSize=18
-    btn.BackgroundColor3=Color3.fromRGB(50,50,50); btn.TextColor3=Color3.new(1,1,1)
-    btn.MouseButton1Click:Connect(function() showTab(tabFrame) end)
-end
+-- Resizer
+local ResizeSection = ResizerTab:NewSection("Leg Resizer")
+ResizeSection:NewSlider("Resize Left Leg", "Scale left leg", 20, 1, function(v) resizeLeg("Left Leg", v) end)
+ResizeSection:NewSlider("Resize Right Leg", "Scale right leg", 20, 1, function(v) resizeLeg("Right Leg", v) end)
 
--- FireTouch Tab
-local FireTouchFrame=Instance.new("Frame",MainPanel)
-FireTouchFrame.Size=UDim2.new(1,0,1,0); FireTouchFrame.Visible=false
-makeTabButton("FireTouch",1,FireTouchFrame)
+-- Teleportation
+local TeleSection = TeleportTab:NewSection("Teleport Options")
+TeleSection:NewButton("Teleport Green Side", "Move to green side", tpGreen)
+TeleSection:NewButton("Teleport Blue Side", "Move to blue side", tpBlue)
 
-local legToggle=Instance.new("TextButton",FireTouchFrame)
-legToggle.Size=UDim2.new(0,200,0,40); legToggle.Position=UDim2.new(0,20,0,20)
-legToggle.Text="Leg Firetouch: OFF"; legToggle.BackgroundColor3=Color3.fromRGB(70,70,70); legToggle.TextColor3=Color3.new(1,1,1)
-legToggle.MouseButton1Click:Connect(function() Reach.EnabledLegs=not Reach.EnabledLegs; legToggle.Text="Leg Firetouch: "..(Reach.EnabledLegs and "ON" or "OFF") end)
+-- Misc
+local MiscSection = MiscTab:NewSection("Miscellaneous")
+MiscSection:NewButton("Get 5x Stamina (placeholder)", "Placeholder stamina boost", function() print("Stamina placeholder") end)
 
-local headToggle=legToggle:Clone(); headToggle.Parent=FireTouchFrame; headToggle.Position=UDim2.new(0,20,0,70)
-headToggle.Text="Head Firetouch: OFF"
-headToggle.MouseButton1Click:Connect(function() Reach.EnabledHead=not Reach.EnabledHead; headToggle.Text="Head Firetouch: "..(Reach.EnabledHead and "ON" or "OFF") end)
-
--- Reacts Tab
-local ReactsFrame=Instance.new("Frame",MainPanel)
-ReactsFrame.Size=UDim2.new(1,0,1,0); ReactsFrame.Visible=false
-makeTabButton("Reacts",2,ReactsFrame)
-
-local elemToggle=Instance.new("TextButton",ReactsFrame)
-elemToggle.Size=UDim2.new(0,200,0,40); elemToggle.Position=UDim2.new(0,20,0,20)
-elemToggle.Text="Elemental React: OFF"; elemToggle.BackgroundColor3=Color3.fromRGB(70,70,70); elemToggle.TextColor3=Color3.new(1,1,1)
-elemToggle.MouseButton1Click:Connect(function() Reacts.Elemental=not Reacts.Elemental; elemToggle.Text="Elemental React: "..(Reacts.Elemental and "ON" or "OFF"); setReactLoop(Reacts.Elemental or Reacts.Hera) end)
-
-local heraToggle=elemToggle:Clone(); heraToggle.Parent=ReactsFrame; heraToggle.Position=UDim2.new(0,20,0,70)
-heraToggle.Text="Hera React: OFF"
-heraToggle.MouseButton1Click:Connect(function() Reacts.Hera=not Reacts.Hera; heraToggle.Text="Hera React: "..(Reacts.Hera and "ON" or "OFF"); setReactLoop(Reacts.Elemental or Reacts.Hera) end)
-
--- Resizer Tab
-local ResizerFrame=Instance.new("Frame",MainPanel)
-ResizerFrame.Size=UDim2.new(1,0,1,0); ResizerFrame.Visible=false
-makeTabButton("Resizer",3,ResizerFrame)
-
-local leftBtn=Instance.new("TextButton",ResizerFrame)
-leftBtn.Size=UDim2.new(0,200,0,40); leftBtn.Position=UDim2.new(0,20,0,20)
-leftBtn.Text="Resize Left Leg"; leftBtn.BackgroundColor3=Color3.fromRGB(70,70,70); left
+-- Spoofer
+local SpoofSection = SpooferTab:NewSection("Level Spoofer")
+SpoofSection:NewButton("Spoof Level (placeholder)", "Placeholder spoof", function() print("Spoof placeholder") end)
