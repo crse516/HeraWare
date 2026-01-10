@@ -1,4 +1,4 @@
--- HeraWare Aqua Edition (Rayfield UI, Pink Theme)
+-- HeraWare Aqua Edition (Orion UI, Pink Theme)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -79,50 +79,45 @@ local function useStamina(btn)
     end
 end
 
--- === Rayfield UI ===
-local Rayfield = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Rayfield/main/source"))()
+-- === Orion UI ===
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
 
-local Window = Rayfield:CreateWindow({
-   Name = "HeraWare Aqua",
-   LoadingTitle = "Made by Hera",
-   LoadingSubtitle = "Licensed to "..LP.Name,
-   Theme = "Pink",
-   KeySystem = false
-})
+local Window = OrionLib:MakeWindow({Name = "HeraWare Aqua", HidePremium = false, SaveConfig = false, ConfigFolder = "HeraWareAqua", IntroText = "Made by Hera", Theme = "Pink"})
 
 -- Toggle with RightCtrl
-Rayfield:ToggleUI(Enum.KeyCode.RightControl)
+OrionLib:ToggleUI(Enum.KeyCode.RightControl)
 
 -- Info Tab
-local InfoTab = Window:CreateTab("Info", 4483345998)
-InfoTab:CreateSection("Made by Hera")
-InfoTab:CreateParagraph({Title="Features", Content="- FireTouch\n- Elemental React\n- Hera React\n- Sourenos React\n- Resizer\n- Teleportation\n- 5x Instant Stamina/day"})
-InfoTab:CreateParagraph({Title="License", Content="This script is licensed to "..LP.Name})
+local InfoTab = Window:MakeTab({Name = "Info", Icon = "rbxassetid://4483345998", PremiumOnly = false})
+InfoTab:AddParagraph("Made by Hera","Features:\n- FireTouch\n- Elemental React\n- Hera React\n- Sourenos React\n- Resizer\n- Teleportation\n- 5x Instant Stamina/day")
+InfoTab:AddParagraph("License","This script is licensed to "..LP.Name)
 
 -- FireTouch Tab
-local FireTab = Window:CreateTab("FireTouch", 4483345998)
-FireTab:CreateToggle({Name="Leg Firetouch", CurrentValue=false, Callback=function(v) Reach.EnabledLegs=v end})
-FireTab:CreateToggle({Name="Head Firetouch", CurrentValue=false, Callback=function(v) Reach.EnabledHead=v end})
-FireTab:CreateSlider({Name="Leg Reach Distance", Range={1,20}, Increment=1, CurrentValue=Reach.DistLegs, Callback=function(v) Reach.DistLegs=v end})
-FireTab:CreateSlider({Name="Head Reach Distance", Range={1,20}, Increment=1, CurrentValue=Reach.DistHead, Callback=function(v) Reach.DistHead=v end})
+local FireTab = Window:MakeTab({Name = "FireTouch", Icon = "rbxassetid://4483345998", PremiumOnly = false})
+FireTab:AddToggle({Name="Leg Firetouch", Default=false, Callback=function(v) Reach.EnabledLegs=v end})
+FireTab:AddToggle({Name="Head Firetouch", Default=false, Callback=function(v) Reach.EnabledHead=v end})
+FireTab:AddSlider({Name="Leg Reach Distance", Min=1, Max=20, Default=Reach.DistLegs, Color=Color3.fromRGB(255,20,147), Increment=1, Callback=function(v) Reach.DistLegs=v end})
+FireTab:AddSlider({Name="Head Reach Distance", Min=1, Max=20, Default=Reach.DistHead, Color=Color3.fromRGB(255,20,147), Increment=1, Callback=function(v) Reach.DistHead=v end})
 
 -- Reacts Tab
-local ReactTab = Window:CreateTab("Reacts", 4483345998)
-ReactTab:CreateToggle({Name="Elemental React", CurrentValue=false, Callback=function(v) Reacts.Elemental=v; setReactLoop(v or Reacts.Hera or Reacts.Sourenos) end})
-ReactTab:CreateToggle({Name="Hera React", CurrentValue=false, Callback=function(v) Reacts.Hera=v; setReactLoop(v or Reacts.Elemental or Reacts.Sourenos) end})
-ReactTab:CreateToggle({Name="Sourenos React", CurrentValue=false, Callback=function(v) Reacts.Sourenos=v; setReactLoop(v or Reacts.Elemental or Reacts.Hera) end})
-ReactTab:CreateSlider({Name="React Offset (ms)", Range={0,100}, Increment=5, CurrentValue=Reacts.OffsetMs, Callback=function(v) Reacts.OffsetMs=v end})
+local ReactTab = Window:MakeTab({Name = "Reacts", Icon = "rbxassetid://4483345998", PremiumOnly = false})
+ReactTab:AddToggle({Name="Elemental React", Default=false, Callback=function(v) Reacts.Elemental=v; setReactLoop(v or Reacts.Hera or Reacts.Sourenos) end})
+ReactTab:AddToggle({Name="Hera React", Default=false, Callback=function(v) Reacts.Hera=v; setReactLoop(v or Reacts.Elemental or Reacts.Sourenos) end})
+ReactTab:AddToggle({Name="Sourenos React", Default=false, Callback=function(v) Reacts.Sourenos=v; setReactLoop(v or Reacts.Elemental or Reacts.Hera) end})
+ReactTab:AddSlider({Name="React Offset (ms)", Min=0, Max=100, Default=Reacts.OffsetMs, Color=Color3.fromRGB(255,20,147), Increment=5, Callback=function(v) Reacts.OffsetMs=v end})
 
 -- Resizer Tab
-local ResizeTab = Window:CreateTab("Resizer", 4483345998)
-ResizeTab:CreateSlider({Name="Resize Left Leg", Range={1,20}, Increment=1, CurrentValue=5, Callback=function(v) resizeLeg("Left Leg", v) end})
-ResizeTab:CreateSlider({Name="Resize Right Leg", Range={1,20}, Increment=1, CurrentValue=5, Callback=function(v) resizeLeg("Right Leg", v) end})
+local ResizeTab = Window:MakeTab({Name = "Resizer", Icon = "rbxassetid://4483345998", PremiumOnly = false})
+ResizeTab:AddSlider({Name="Resize Left Leg", Min=1, Max=20, Default=5, Color=Color3.fromRGB(255,20,147), Increment=1, Callback=function(v) resizeLeg("Left Leg", v) end})
+ResizeTab:AddSlider({Name="Resize Right Leg", Min=1, Max=20, Default=5, Color=Color3.fromRGB(255,20,147), Increment=1, Callback=function(v) resizeLeg("Right Leg", v) end})
 
 -- Teleportation Tab
-local TeleTab = Window:CreateTab("Teleportation", 4483345998)
-TeleTab:CreateButton({Name="Teleport Green Side", Callback=tpGreen})
-TeleTab:CreateButton({Name="Teleport Blue Side", Callback=tpBlue})
+local TeleTab = Window:MakeTab({Name = "Teleportation", Icon = "rbxassetid://4483345998", PremiumOnly = false})
+TeleTab:AddButton({Name="Teleport Green Side", Callback=tpGreen})
+TeleTab:AddButton({Name="Teleport Blue Side", Callback=tpBlue})
 
 -- Misc Tab (Stamina)
-local MiscTab = Window:CreateTab("Misc", 4483345998)
-local staminaBtn = MiscTab:CreateButton({Name="Use Instant Stamina (0/5)", Callback=function() useStamina(staminaBtn) end})
+local MiscTab = Window:MakeTab({Name = "Misc", Icon = "rbxassetid://4483345998", PremiumOnly = false})
+local staminaBtn = MiscTab:AddButton({Name="Use Instant Stamina (0/5)", Callback=function() useStamina(staminaBtn) end})
+
+OrionLib:Init()
