@@ -1,7 +1,8 @@
--- HeraWare: Educational Tester for TPS Ultimate
+-- HeraWare Aqua Edition
 -- UI shows immediately; toggle with RightControl
--- Features: Leg/Head firetouch reach, Delay reducer (time-resolution predictive cues),
--- Elemental React trainer (safe), Teleporter (Green/Blue), adjustable distances and offset.
+-- Safe features: Leg/Head firetouch (match + practice balls), delay reducer predictive cues,
+-- Elemental React trainer (visual cue), teleporters, adjustable distances & offset.
+-- Placeholders: 5x stamina per day, level spoofing (non-exploit stubs).
 
 -- Services
 local Players = game:GetService("Players")
@@ -16,7 +17,7 @@ local LP = Players.LocalPlayer
 local Character = LP.Character or LP.CharacterAdded:Wait()
 local HRP = Character:WaitForChild("HumanoidRootPart")
 
--- Utils
+-- Utilities
 local function getPingMs()
     local item = Stats.Network.ServerStatsItem["Data Ping"]
     return item and item:GetValue() or 0
@@ -32,7 +33,7 @@ local function safeFireTouch(part, ball)
 end
 
 local function findServerBall()
-    -- Try structured locations first
+    -- Prefer structured locations/names to catch match and practice balls
     local sys = Workspace:FindFirstChild("TPSSystem")
     if sys then
         local tps = sys:FindFirstChild("TPS")
@@ -46,24 +47,22 @@ local function findServerBall()
             end
         end
     end
-    -- Common names
     for _, n in ipairs({"TPS","PSoccerBall","Ball","SoccerBall","Football"}) do
         local b = Workspace:FindFirstChild(n)
         if b and b:IsA("BasePart") then return b end
     end
-    -- Fallback scan
     for _, d in ipairs(Workspace:GetDescendants()) do
         if d:IsA("BasePart") and d.Name:lower():find("ball") then return d end
     end
     return nil
 end
 
--- Reach config
+-- Reach config (applies to practice and match balls via findServerBall)
 local Reach = {
     EnabledLegs = false,
     EnabledHead = false,
-    DistLegs = 3,  -- adjustable 1–10
-    DistHead = 5,  -- adjustable 1–10
+    DistLegs = 3,   -- adjustable 1–10
+    DistHead = 5,   -- adjustable 1–10
     UseRightLeg = true,
     UseLeftLeg = true,
 }
@@ -82,7 +81,8 @@ local function runLegReach()
         end
     end
     if Reach.UseLeftLeg then
-        local ll = char:FindFirstChild("Left Leg") or char:FindFirstChild("LeftLowerLeg")
+        local ll = char:FindFirstChild("Left Leg") or char:FindChild("LeftLowerLeg")
+        ll = ll or char:FindFirstChild("LeftLowerLeg") -- safety
         if ll and (ball.Position - ll.Position).Magnitude <= Reach.DistLegs then
             safeFireTouch(ll, ball)
         end
@@ -106,17 +106,18 @@ RunService.RenderStepped:Connect(function()
     runHeadReach()
 end)
 
--- Time-resolution delay reducer + React trainer (safe cues only)
+-- Delay reducer + Elemental React trainer (visual cues only; no physics manipulation)
 local Trainer = {
     ReducerEnabled = false,
     ReactCueEnabled = false,
-    OffsetMs = 20,        -- adjust ±5ms via UI
+    OffsetMs = 20,        -- adjustable via UI, clamped 0–100
     Connection = nil
 }
 
-local function cueFlash()
+local function cueFlash(intensity)
     if _G.HeraFlash then
-        TweenService:Create(_G.HeraFlash, TweenInfo.new(0.08), { BackgroundTransparency = 0.25 }):Play()
+        local alpha = intensity or 0.3
+        TweenService:Create(_G.HeraFlash, TweenInfo.new(0.08), { BackgroundTransparency = 1 - alpha }):Play()
         task.delay(0.08, function()
             if _G.HeraFlash then
                 TweenService:Create(_G.HeraFlash, TweenInfo.new(0.12), { BackgroundTransparency = 1 }):Play()
@@ -126,7 +127,6 @@ local function cueFlash()
 end
 
 local function trainerStep()
-    -- Predictive cue; never changes ball physics
     local ball = findServerBall()
     if not (HRP and ball and ball:IsA("BasePart")) then return end
 
@@ -135,21 +135,11 @@ local function trainerStep()
     local predicted = ball.Position + ball.AssemblyLinearVelocity * early
     local dist = (predicted - HRP.Position).Magnitude
 
-    -- React window threshold
     if Trainer.ReactCueEnabled and dist <= 4.2 then
-        cueFlash()
+        cueFlash(0.4) -- bright flash for react window
     end
-    -- Optional: if ReducerEnabled, you could add additional local cues/assist behaviors (visual-only)
     if Trainer.ReducerEnabled and dist <= 6.0 then
-        -- Soft flash for reducer window
-        if _G.HeraFlash then
-            TweenService:Create(_G.HeraFlash, TweenInfo.new(0.06), { BackgroundTransparency = 0.55 }):Play()
-            task.delay(0.06, function()
-                if _G.HeraFlash then
-                    TweenService:Create(_G.HeraFlash, TweenInfo.new(0.10), { BackgroundTransparency = 1 }):Play()
-                end
-            end)
-        end
+        cueFlash(0.2) -- softer flash for reducer assist window
     end
 end
 
@@ -162,7 +152,7 @@ local function setTrainerLoop(state)
     end
 end
 
--- Teleporter
+-- Teleporters
 local function tpGreen()
     local root = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
     if root then root.CFrame = CFrame.new(0, 175, 179) end
@@ -172,7 +162,7 @@ local function tpBlue()
     if root then root.CFrame = CFrame.new(0.4269, 175.29, 377.40) end
 end
 
--- UI base
+-- UI setup (Aqua theme + tabs)
 local gui = Instance.new("ScreenGui")
 gui.Name = "HeraWareGUI"
 gui.ResetOnSpawn = false
@@ -181,19 +171,41 @@ gui.IgnoreGuiInset = true
 gui.Parent = LP:WaitForChild("PlayerGui")
 
 -- Toggle UI with RightControl
-local ToggleKey = Enum.KeyCode.RightControl
 UIS.InputBegan:Connect(function(input, gp)
     if gp then return end
-    if input.KeyCode == ToggleKey then
+    if input.KeyCode == Enum.KeyCode.RightControl then
         gui.Enabled = not gui.Enabled
     end
 end)
 
--- Flash overlay (top screen bar for cues)
+-- Theme
+local aquaPrimary = Color3.fromRGB(0, 180, 200)
+local aquaSecondary = Color3.fromRGB(0, 120, 140)
+local aquaPanel = Color3.fromRGB(20, 45, 55)
+local textColor = Color3.fromRGB(240, 255, 255)
+
+-- Main container
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 480, 0, 540)
+mainFrame.Position = UDim2.new(0.5, -240, 0.5, -270)
+mainFrame.BackgroundColor3 = aquaSecondary
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = gui
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 44)
+title.BackgroundTransparency = 1
+title.Text = "HeraWare Aqua"
+title.TextColor3 = textColor
+title.Font = Enum.Font.GothamBold
+title.TextSize = 22
+title.Parent = mainFrame
+
+-- Flash overlay (top bar)
 local flash = Instance.new("Frame")
-flash.Size = UDim2.new(1, 0, 0, 3)
+flash.Size = UDim2.new(1, 0, 0, 4)
 flash.Position = UDim2.new(0, 0, 0, 0)
-flash.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+flash.BackgroundColor3 = aquaPrimary
 flash.BackgroundTransparency = 1
 flash.BorderSizePixel = 0
 flash.Parent = gui
@@ -201,10 +213,10 @@ _G.HeraFlash = flash
 
 -- Toast label
 local toast = Instance.new("TextLabel")
-toast.Size = UDim2.new(0, 296, 0, 22)
-toast.Position = UDim2.new(0, 12, 0, 104)
-toast.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-toast.TextColor3 = Color3.fromRGB(235, 235, 245)
+toast.Size = UDim2.new(0, 340, 0, 24)
+toast.Position = UDim2.new(0, 14, 0, 80)
+toast.BackgroundColor3 = aquaPanel
+toast.TextColor3 = textColor
 toast.Font = Enum.Font.GothamBold
 toast.TextSize = 14
 toast.Text = ""
@@ -212,116 +224,131 @@ toast.Visible = false
 toast.Parent = gui
 _G.HeraToast = toast
 
--- Main frame
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 360, 0, 450)
-mainFrame.Position = UDim2.new(0.5, -180, 0.5, -225)
-mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-mainFrame.BorderSizePixel = 0
-mainFrame.Parent = gui
+-- Tabs
+local tabs = {}
+local currentTab
 
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 40)
-title.BackgroundTransparency = 1
-title.Text = "HeraWare"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 20
-title.Parent = mainFrame
+local function makeTab(name, x)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(0, 140, 0, 32)
+    b.Position = UDim2.new(0, x, 0, 56)
+    b.BackgroundColor3 = aquaPrimary
+    b.TextColor3 = textColor
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 14
+    b.Text = name
+    b.Parent = mainFrame
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, -20, 1, -110)
+    frame.Position = UDim2.new(0, 10, 0, 100)
+    frame.BackgroundColor3 = aquaPanel
+    frame.BorderSizePixel = 0
+    frame.Visible = false
+    frame.Parent = mainFrame
+    tabs[name] = frame
+
+    b.MouseButton1Click:Connect(function()
+        if currentTab then currentTab.Visible = false end
+        frame.Visible = true
+        currentTab = frame
+    end)
+end
+
+makeTab("Main", 10)
+makeTab("Misc", 160)
+makeTab("Level Spoofer", 310)
 
 -- UI helpers
-local function makeButton(text, y, callback)
+local function makeButton(parent, text, y, callback)
     local b = Instance.new("TextButton")
-    b.Size = UDim2.new(1, -20, 0, 32)
+    b.Size = UDim2.new(1, -20, 0, 34)
     b.Position = UDim2.new(0, 10, 0, y)
-    b.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
-    b.TextColor3 = Color3.fromRGB(235, 235, 245)
+    b.BackgroundColor3 = aquaPrimary
+    b.TextColor3 = textColor
     b.Font = Enum.Font.GothamBold
     b.TextSize = 14
     b.Text = text
-    b.Parent = mainFrame
-    b.MouseButton1Click:Connect(function()
-        pcall(callback)
-    end)
+    b.Parent = parent
+    b.MouseButton1Click:Connect(function() pcall(callback) end)
     return b
 end
 
-local function makeStepper(labelText, y, getValue, setValue)
+local function makeStepper(parent, labelText, y, getValue, setValue, minV, maxV, step)
     local label = Instance.new("TextLabel")
     label.Size = UDim2.new(1, -20, 0, 26)
     label.Position = UDim2.new(0, 10, 0, y)
     label.BackgroundTransparency = 1
-    label.TextColor3 = Color3.fromRGB(220, 220, 230)
+    label.TextColor3 = textColor
     label.Font = Enum.Font.Gotham
     label.TextSize = 14
     label.Text = labelText .. ": " .. tostring(getValue())
-    label.Parent = mainFrame
+    label.Parent = parent
 
     local minus = Instance.new("TextButton")
-    minus.Size = UDim2.new(0, 40, 0, 26)
+    minus.Size = UDim2.new(0, 50, 0, 26)
     minus.Position = UDim2.new(0, 10, 0, y + 28)
-    minus.BackgroundColor3 = Color3.fromRGB(55, 55, 70)
-    minus.TextColor3 = Color3.fromRGB(235, 235, 245)
+    minus.BackgroundColor3 = aquaSecondary
+    minus.TextColor3 = textColor
     minus.Font = Enum.Font.GothamBold
     minus.TextSize = 14
-    minus.Text = "-"
+    minus.Text = "-" .. tostring(step)
 
     local plus = Instance.new("TextButton")
-    plus.Size = UDim2.new(0, 40, 0, 26)
-    plus.Position = UDim2.new(0, 60, 0, y + 28)
-    plus.BackgroundColor3 = Color3.fromRGB(55, 55, 70)
-    plus.TextColor3 = Color3.fromRGB(235, 235, 245)
+    plus.Size = UDim2.new(0, 50, 0, 26)
+    plus.Position = UDim2.new(0, 70, 0, y + 28)
+    plus.BackgroundColor3 = aquaSecondary
+    plus.TextColor3 = textColor
     plus.Font = Enum.Font.GothamBold
     plus.TextSize = 14
-    plus.Text = "+"
+    plus.Text = "+" .. tostring(step)
 
-    minus.Parent = mainFrame
-    plus.Parent = mainFrame
+    minus.Parent = parent
+    plus.Parent = parent
 
-    local function refresh()
-        label.Text = labelText .. ": " .. tostring(getValue())
-    end
-
+    local function refresh() label.Text = labelText .. ": " .. tostring(getValue()) end
     minus.MouseButton1Click:Connect(function()
         local v = getValue()
-        setValue(math.max(1, v - 1))
+        setValue(math.max(minV, v - step))
         refresh()
     end)
     plus.MouseButton1Click:Connect(function()
         local v = getValue()
-        setValue(math.min(10, v + 1))
+        setValue(math.min(maxV, v + step))
         refresh()
     end)
 
     return { label = label, minus = minus, plus = plus, refresh = refresh }
 end
 
--- Feature buttons
-makeButton("Toggle Leg Firetouch", 60, function()
+-- Main tab: real feature wiring
+makeButton(tabs["Main"], "Toggle Leg Firetouch", 20, function()
     Reach.EnabledLegs = not Reach.EnabledLegs
     toast.Text = "Leg Firetouch: " .. (Reach.EnabledLegs and "ON" or "OFF")
     toast.Visible = true
     task.delay(1.0, function() toast.Visible = false end)
 end)
 
-makeButton("Toggle Head Firetouch", 100, function()
+makeButton(tabs["Main"], "Toggle Head Firetouch", 60, function()
     Reach.EnabledHead = not Reach.EnabledHead
     toast.Text = "Head Firetouch: " .. (Reach.EnabledHead and "ON" or "OFF")
     toast.Visible = true
     task.delay(1.0, function() toast.Visible = false end)
 end)
 
-local legsStepper = makeStepper("Leg reach (studs)", 140,
+makeStepper(tabs["Main"], "Leg reach (studs)", 100,
     function() return Reach.DistLegs end,
-    function(v) Reach.DistLegs = v end
+    function(v) Reach.DistLegs = v end,
+    1, 10, 1
 )
 
-local headStepper = makeStepper("Head reach (studs)", 200,
+makeStepper(tabs["Main"], "Head reach (studs)", 160,
     function() return Reach.DistHead end,
-    function(v) Reach.DistHead = v end
+    function(v) Reach.DistHead = v end,
+    1, 10, 1
 )
 
-makeButton("Enable Delay Reducer", 250, function()
+makeButton(tabs["Main"], "Enable Delay Reducer", 210, function()
     Trainer.ReducerEnabled = true
     setTrainerLoop(true)
     toast.Text = "Delay Reducer: ON"
@@ -329,62 +356,21 @@ makeButton("Enable Delay Reducer", 250, function()
     task.delay(1.0, function() toast.Visible = false end)
 end)
 
-makeButton("Disable Delay Reducer", 290, function()
+makeButton(tabs["Main"], "Disable Delay Reducer", 250, function()
     Trainer.ReducerEnabled = false
-    if not Trainer.ReactCueEnabled then
-        setTrainerLoop(false)
-    end
+    setTrainerLoop(Trainer.ReactCueEnabled) -- keep loop if react trainer still on
     toast.Text = "Delay Reducer: OFF"
     toast.Visible = true
     task.delay(1.0, function() toast.Visible = false end)
 end)
 
--- Offset stepper (±5ms per click, clamped 0–100ms)
-local offsetLabelY = 330
-local offsetLabel = Instance.new("TextLabel")
-offsetLabel.Size = UDim2.new(1, -20, 0, 26)
-offsetLabel.Position = UDim2.new(0, 10, 0, offsetLabelY)
-offsetLabel.BackgroundTransparency = 1
-offsetLabel.TextColor3 = Color3.fromRGB(220, 220, 230)
-offsetLabel.Font = Enum.Font.Gotham
-offsetLabel.TextSize = 14
-offsetLabel.Text = "Delay reducer offset (ms): " .. tostring(Trainer.OffsetMs)
-offsetLabel.Parent = mainFrame
+makeStepper(tabs["Main"], "Delay reducer offset (ms)", 290,
+    function() return Trainer.OffsetMs end,
+    function(v) Trainer.OffsetMs = math.clamp(v, 0, 100) end,
+    0, 100, 5
+)
 
-local offsetMinus = Instance.new("TextButton")
-offsetMinus.Size = UDim2.new(0, 40, 0, 26)
-offsetMinus.Position = UDim2.new(0, 10, 0, offsetLabelY + 28)
-offsetMinus.BackgroundColor3 = Color3.fromRGB(55, 55, 70)
-offsetMinus.TextColor3 = Color3.fromRGB(235, 235, 245)
-offsetMinus.Font = Enum.Font.GothamBold
-offsetMinus.TextSize = 14
-offsetMinus.Text = "-5"
-offsetMinus.Parent = mainFrame
-
-local offsetPlus = Instance.new("TextButton")
-offsetPlus.Size = UDim2.new(0, 40, 0, 26)
-offsetPlus.Position = UDim2.new(0, 60, 0, offsetLabelY + 28)
-offsetPlus.BackgroundColor3 = Color3.fromRGB(55, 55, 70)
-offsetPlus.TextColor3 = Color3.fromRGB(235, 235, 245)
-offsetPlus.Font = Enum.Font.GothamBold
-offsetPlus.TextSize = 14
-offsetPlus.Text = "+5"
-offsetPlus.Parent = mainFrame
-
-local function refreshOffset()
-    offsetLabel.Text = "Delay reducer offset (ms): " .. tostring(Trainer.OffsetMs)
-end
-
-offsetMinus.MouseButton1Click:Connect(function()
-    Trainer.OffsetMs = math.max(0, Trainer.OffsetMs - 5)
-    refreshOffset()
-end)
-offsetPlus.MouseButton1Click:Connect(function()
-    Trainer.OffsetMs = math.min(100, Trainer.OffsetMs + 5)
-    refreshOffset()
-end)
-
-makeButton("Toggle Elemental React trainer", 380, function()
+makeButton(tabs["Main"], "Toggle Elemental React trainer", 340, function()
     Trainer.ReactCueEnabled = not Trainer.ReactCueEnabled
     setTrainerLoop(Trainer.ReactCueEnabled or Trainer.ReducerEnabled)
     toast.Text = "React Trainer: " .. (Trainer.ReactCueEnabled and "ON" or "OFF")
@@ -392,17 +378,31 @@ makeButton("Toggle Elemental React trainer", 380, function()
     task.delay(1.0, function() toast.Visible = false end)
 end)
 
--- Teleporters
-makeButton("Teleport Green Side", 420, tpGreen)
-makeButton("Teleport Blue Side", 460, tpBlue) -- extends frame; adjust size if desired
+makeButton(tabs["Main"], "Teleport Green Side", 380, tpGreen)
+makeButton(tabs["Main"], "Teleport Blue Side", 420, tpBlue)
 
--- Resize frame to fit last button neatly
-mainFrame.Size = UDim2.new(0, 360, 0, 500)
+-- Misc tab: safe placeholder (no stat manipulation)
+makeButton(tabs["Misc"], "Get 5x Stamina (placeholder)", 20, function()
+    toast.Text = "5x Stamina is a placeholder (visual only)."
+    toast.Visible = true
+    task.delay(1.5, function() toast.Visible = false end)
+end)
+
+-- Level Spoofer tab: safe placeholder (no server spoofing)
+makeButton(tabs["Level Spoofer"], "Spoof Level (placeholder)", 20, function()
+    toast.Text = "Level spoofing is a placeholder (visual only)."
+    toast.Visible = true
+    task.delay(1.5, function() toast.Visible = false end)
+end)
+
+-- Show Main tab by default
+tabs["Main"].Visible = true
+currentTab = tabs["Main"]
 
 -- Startup notice
 StarterGui:SetCore("SendNotification", {
-    Title = "HeraWare",
+    Title = "HeraWare Aqua",
     Text = "Loaded. Toggle UI with RightControl.",
     Duration = 3
 })
-print("HeraWare UI loaded. Toggle with RightControl.")
+print("HeraWare Aqua UI loaded. Toggle with RightControl.")
