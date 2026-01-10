@@ -1,7 +1,6 @@
--- HeraWare Aqua Edition (Orion UI)
--- Features: Leg/Head firetouch (works on match + practice balls), delay reducer predictive cues,
--- Elemental React trainer (visual cue), teleporters, adjustable distances & offset.
--- Placeholders: 5x stamina per day, level spoofing (non-exploit stubs).
+-- HeraWare Aqua Edition (Custom UI)
+-- Features: FireTouch reach (match + practice balls), Elemental React ("light speed"), Hera React ("fast+smooth"),
+-- Teleporters, Leg Resizer, Stamina placeholder, Level Spoofer placeholder.
 
 -- Services
 local Players = game:GetService("Players")
@@ -101,37 +100,37 @@ RunService.RenderStepped:Connect(function()
     runHeadReach()
 end)
 
--- Delay reducer + React trainer
-local Trainer = {
-    ReducerEnabled = false,
-    ReactCueEnabled = false,
+-- Reacts
+local Reacts = {
+    Elemental = false, -- "light speed" react
+    Hera = false,      -- "fast+smooth" react
     OffsetMs = 20,
     Connection = nil
 }
 
-local function trainerStep()
+local function reactStep()
     local ball = findServerBall()
     if not (HRP and ball and ball:IsA("BasePart")) then return end
 
     local ping = getPingMs()
-    local early = (ping / 2 + Trainer.OffsetMs) / 1000
+    local early = (ping / 2 + Reacts.OffsetMs) / 1000
     local predicted = ball.Position + ball.AssemblyLinearVelocity * early
     local dist = (predicted - HRP.Position).Magnitude
 
-    if Trainer.ReactCueEnabled and dist <= 4.2 then
-        print("React cue triggered")
+    if Reacts.Elemental and dist <= 4.2 then
+        print("Elemental React (light speed) triggered")
     end
-    if Trainer.ReducerEnabled and dist <= 6.0 then
-        print("Delay reducer cue triggered")
+    if Reacts.Hera and dist <= 5.0 then
+        print("Hera React (fast+smooth) triggered")
     end
 end
 
-local function setTrainerLoop(state)
-    if state and not Trainer.Connection then
-        Trainer.Connection = RunService.Heartbeat:Connect(trainerStep)
-    elseif not state and Trainer.Connection then
-        Trainer.Connection:Disconnect()
-        Trainer.Connection = nil
+local function setReactLoop(state)
+    if state and not Reacts.Connection then
+        Reacts.Connection = RunService.Heartbeat:Connect(reactStep)
+    elseif not state and Reacts.Connection then
+        Reacts.Connection:Disconnect()
+        Reacts.Connection = nil
     end
 end
 
@@ -145,121 +144,39 @@ local function tpBlue()
     if root then root.CFrame = CFrame.new(0.4269, 175.29, 377.40) end
 end
 
--- Orion UI Library
-local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
+-- Leg Resizer
+local function resizeLeg(legName, scale)
+    local char = LP.Character
+    if not char then return end
+    local leg = char:FindFirstChild(legName)
+    if leg and leg:IsA("BasePart") then
+        leg.Size = Vector3.new(leg.Size.X, scale, leg.Size.Z)
+    end
+end
 
+-- Custom UI Framework (simple sidebar style)
+local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
 local Window = OrionLib:MakeWindow({Name = "HeraWare Aqua", HidePremium = false, SaveConfig = true, ConfigFolder = "HeraWare"})
 
 -- Tabs
-local MainTab = Window:MakeTab({Name = "Main", Icon = "rbxassetid://4483345998", PremiumOnly = false})
+local FireTouchTab = Window:MakeTab({Name = "FireTouch", Icon = "rbxassetid://4483345998", PremiumOnly = false})
+local ReactsTab = Window:MakeTab({Name = "Reacts", Icon = "rbxassetid://4483345998", PremiumOnly = false})
+local ResizerTab = Window:MakeTab({Name = "Resizer", Icon = "rbxassetid://4483345998", PremiumOnly = false})
+local TeleportTab = Window:MakeTab({Name = "Teleportation", Icon = "rbxassetid://4483345998", PremiumOnly = false})
 local MiscTab = Window:MakeTab({Name = "Misc", Icon = "rbxassetid://4483345998", PremiumOnly = false})
 local SpooferTab = Window:MakeTab({Name = "Level Spoofer", Icon = "rbxassetid://4483345998", PremiumOnly = false})
 
--- Main features
-MainTab:AddToggle({
-    Name = "Leg Firetouch",
-    Default = false,
-    Callback = function(state)
-        Reach.EnabledLegs = state
-    end
-})
+-- FireTouch options
+FireTouchTab:AddToggle({Name = "Leg Firetouch", Default = false, Callback = function(state) Reach.EnabledLegs = state end})
+FireTouchTab:AddToggle({Name = "Head Firetouch", Default = false, Callback = function(state) Reach.EnabledHead = state end})
+FireTouchTab:AddSlider({Name = "Leg Reach Distance", Min = 1, Max = 20, Default = Reach.DistLegs, Increment = 1, ValueName = "studs", Callback = function(val) Reach.DistLegs = val end})
+FireTouchTab:AddSlider({Name = "Head Reach Distance", Min = 1, Max = 20, Default = Reach.DistHead, Increment = 1, ValueName = "studs", Callback = function(val) Reach.DistHead = val end})
 
-MainTab:AddToggle({
-    Name = "Head Firetouch",
-    Default = false,
-    Callback = function(state)
-        Reach.EnabledHead = state
-    end
-})
+-- Reacts options
+ReactsTab:AddToggle({Name = "Elemental React (light speed)", Default = false, Callback = function(state) Reacts.Elemental = state; setReactLoop(state or Reacts.Hera) end})
+ReactsTab:AddToggle({Name = "Hera React (fast+smooth)", Default = false, Callback = function(state) Reacts.Hera = state; setReactLoop(state or Reacts.Elemental) end})
+ReactsTab:AddSlider({Name = "React Offset (ms)", Min = 0, Max = 100, Default = Reacts.OffsetMs, Increment = 5, ValueName = "ms", Callback = function(val) Reacts.OffsetMs = val end})
 
-MainTab:AddSlider({
-    Name = "Leg Reach Distance",
-    Min = 1,
-    Max = 10,
-    Default = Reach.DistLegs,
-    Color = Color3.fromRGB(0,180,200),
-    Increment = 1,
-    ValueName = "studs",
-    Callback = function(val)
-        Reach.DistLegs = val
-    end
-})
-
-MainTab:AddSlider({
-    Name = "Head Reach Distance",
-    Min = 1,
-    Max = 10,
-    Default = Reach.DistHead,
-    Color = Color3.fromRGB(0,180,200),
-    Increment = 1,
-    ValueName = "studs",
-    Callback = function(val)
-        Reach.DistHead = val
-    end
-})
-
-MainTab:AddButton({
-    Name = "Enable Delay Reducer",
-    Callback = function()
-        Trainer.ReducerEnabled = true
-        setTrainerLoop(true)
-    end
-})
-
-MainTab:AddButton({
-    Name = "Disable Delay Reducer",
-    Callback = function()
-        Trainer.ReducerEnabled = false
-        setTrainerLoop(Trainer.ReactCueEnabled)
-    end
-})
-
-MainTab:AddSlider({
-    Name = "Delay Offset (ms)",
-    Min = 0,
-    Max = 100,
-    Default = Trainer.OffsetMs,
-    Color = Color3.fromRGB(0,180,200),
-    Increment = 5,
-    ValueName = "ms",
-    Callback = function(val)
-        Trainer.OffsetMs = val
-    end
-})
-
-MainTab:AddToggle({
-    Name = "Elemental React Trainer",
-    Default = false,
-    Callback = function(state)
-        Trainer.ReactCueEnabled = state
-        setTrainerLoop(state or Trainer.ReducerEnabled)
-    end
-})
-
-MainTab:AddButton({
-    Name = "Teleport Green Side",
-    Callback = tpGreen
-})
-
-MainTab:AddButton({
-    Name = "Teleport Blue Side",
-    Callback = tpBlue
-})
-
--- Misc tab
-MiscTab:AddButton({
-    Name = "Get 5x Stamina (placeholder)",
-    Callback = function()
-        print("Stamina placeholder triggered")
-    end
-})
-
--- Spoofer tab
-SpooferTab:AddButton({
-    Name = "Spoof Level (placeholder)",
-    Callback = function()
-        print("Level spoof placeholder triggered")
-    end
-})
-
-OrionLib:Init()
+-- Resizer options
+ResizerTab:AddSlider({Name = "Resize Left Leg", Min = 1, Max = 20, Default = 5, Increment = 1, ValueName = "scale", Callback = function(val) resizeLeg("Left Leg", val) end})
+ResizerTab:AddSlider({Name = "Resize Right
