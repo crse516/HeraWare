@@ -99,13 +99,6 @@ InfoTab:CreateSection("Made by Hera")
 InfoTab:CreateParagraph({Title="Features", Content="- FireTouch\n- Elemental React\n- Hera React\n- Sourenos React\n- Resizer\n- Teleportation\n- 5x Instant Stamina/day"})
 InfoTab:CreateParagraph({Title="License", Content="This script is licensed to "..LP.Name})
 
--- Avatar thumbnail
-local thumb, isReady = Players:GetUserThumbnailAsync(LP.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
-if isReady then
-    InfoTab:CreateParagraph({Title="Avatar", Content="Your avatar:",})
-    InfoTab:CreateParagraph({Title="", Content="![Avatar]("..thumb..")"})
-end
-
 -- FireTouch Tab
 local FireTab = Window:CreateTab("FireTouch", 4483345998)
 FireTab:CreateToggle({Name="Leg Firetouch", CurrentValue=false, Callback=function(v) Reach.EnabledLegs=v end})
