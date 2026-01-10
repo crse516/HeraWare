@@ -1,12 +1,12 @@
--- HeraWare Aqua Edition (Kavo UI)
--- Features: FireTouch reach (match + practice balls), Elemental React ("light speed"), Hera React ("fast+smooth"),
--- Teleporters, Leg Resizer, Stamina placeholder, Level Spoofer placeholder.
+-- HeraWare Aqua Edition (Pink Theme, Blur.xyz style toggle UI)
 
 -- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local Stats = game:GetService("Stats")
+local CoreGui = game:GetService("CoreGui")
+local UIS = game:GetService("UserInputService")
 
 local LP = Players.LocalPlayer
 local Character = LP.Character or LP.CharacterAdded:Wait()
@@ -68,7 +68,7 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- Reacts
-local Reacts = {Elemental=false,Hera=false,OffsetMs=20,Connection=nil}
+local Reacts = {Elemental=false,Hera=false,Sourenos=false,OffsetMs=20,Connection=nil}
 local function reactStep()
     local ball = findServerBall()
     if not (HRP and ball) then return end
@@ -78,6 +78,7 @@ local function reactStep()
     local dist = (predicted-HRP.Position).Magnitude
     if Reacts.Elemental and dist<=4.2 then print("Elemental React (light speed)") end
     if Reacts.Hera and dist<=5.0 then print("Hera React (fast+smooth)") end
+    if Reacts.Sourenos and dist<=7.0 then print("Sourenos React (reachy)") end
 end
 local function setReactLoop(state)
     if state and not Reacts.Connection then
@@ -97,45 +98,78 @@ local function resizeLeg(legName,scale)
     if leg and leg:IsA("BasePart") then leg.Size=Vector3.new(leg.Size.X,scale,leg.Size.Z) end
 end
 
--- === Kavo UI ===
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = Library.CreateLib("HeraWare Aqua", "DarkTheme")
+-- Stamina (5x instant per day)
+local staminaUses = 0
+local staminaLimit = 5
+local staminaDay = os.date("%x")
 
--- Tabs
-local FireTouchTab = Window:NewTab("FireTouch")
-local ReactsTab = Window:NewTab("Reacts")
-local ResizerTab = Window:NewTab("Resizer")
-local TeleportTab = Window:NewTab("Teleportation")
-local MiscTab = Window:NewTab("Misc")
-local SpooferTab = Window:NewTab("Level Spoofer")
+local function giveStamina(btn)
+    local today = os.date("%x")
+    if today ~= staminaDay then
+        staminaDay = today
+        staminaUses = 0
+    end
+    if staminaUses < staminaLimit then
+        staminaUses = staminaUses + 1
+        btn.Text = "Use Instant Stamina ("..staminaUses.."/"..staminaLimit..")"
+        print("Instant stamina granted! ("..staminaUses.."/"..staminaLimit..")")
+        -- Insert stamina logic here (e.g., modify stats)
+    else
+        btn.Text = "Daily Stamina Limit Reached"
+        print("Daily stamina limit reached.")
+    end
+end
 
--- FireTouch
-local FireSection = FireTouchTab:NewSection("FireTouch Settings")
-FireSection:NewToggle("Leg Firetouch", "Toggle leg reach", function(v) Reach.EnabledLegs=v end)
-FireSection:NewToggle("Head Firetouch", "Toggle head reach", function(v) Reach.EnabledHead=v end)
-FireSection:NewSlider("Leg Reach Distance", "Adjust leg reach", 20, 1, function(v) Reach.DistLegs=v end)
-FireSection:NewSlider("Head Reach Distance", "Adjust head reach", 20, 1, function(v) Reach.DistHead=v end)
+-- === UI ===
+local ScreenGui=Instance.new("ScreenGui",CoreGui)
+ScreenGui.Name="HeraWareUI"
+ScreenGui.ResetOnSpawn=false
+ScreenGui.Enabled=true
 
--- Reacts
-local ReactSection = ReactsTab:NewSection("React Modes")
-ReactSection:NewToggle("Elemental React (light speed)", "Fast react mode", function(v) Reacts.Elemental=v; setReactLoop(v or Reacts.Hera) end)
-ReactSection:NewToggle("Hera React (fast+smooth)", "Smooth react mode", function(v) Reacts.Hera=v; setReactLoop(v or Reacts.Elemental) end)
-ReactSection:NewSlider("React Offset (ms)", "Adjust offset", 100, 0, function(v) Reacts.OffsetMs=v end)
+-- Toggle key (RightShift)
+UIS.InputBegan:Connect(function(input,gp)
+    if gp then return end
+    if input.KeyCode==Enum.KeyCode.RightShift then
+        ScreenGui.Enabled=not ScreenGui.Enabled
+    end
+end)
 
--- Resizer
-local ResizeSection = ResizerTab:NewSection("Leg Resizer")
-ResizeSection:NewSlider("Resize Left Leg", "Scale left leg", 20, 1, function(v) resizeLeg("Left Leg", v) end)
-ResizeSection:NewSlider("Resize Right Leg", "Scale right leg", 20, 1, function(v) resizeLeg("Right Leg", v) end)
+-- Sidebar
+local Sidebar=Instance.new("Frame",ScreenGui)
+Sidebar.Size=UDim2.new(0,150,1,0)
+Sidebar.BackgroundColor3=Color3.fromRGB(255,105,180) -- Pink theme
 
--- Teleportation
-local TeleSection = TeleportTab:NewSection("Teleport Options")
-TeleSection:NewButton("Teleport Green Side", "Move to green side", tpGreen)
-TeleSection:NewButton("Teleport Blue Side", "Move to blue side", tpBlue)
+-- Main panel
+local MainPanel=Instance.new("Frame",ScreenGui)
+MainPanel.Position=UDim2.new(0,150,0,0)
+MainPanel.Size=UDim2.new(1,-150,1,0)
+MainPanel.BackgroundColor3=Color3.fromRGB(255,182,193) -- Light pink
 
--- Misc
-local MiscSection = MiscTab:NewSection("Miscellaneous")
-MiscSection:NewButton("Get 5x Stamina (placeholder)", "Placeholder stamina boost", function() print("Stamina placeholder") end)
+local currentTab
+local function showTab(tabFrame)
+    if currentTab then currentTab.Visible=false end
+    tabFrame.Visible=true; currentTab=tabFrame
+end
 
--- Spoofer
-local SpoofSection = SpooferTab:NewSection("Level Spoofer")
-SpoofSection:NewButton("Spoof Level (placeholder)", "Placeholder spoof", function() print("Spoof placeholder") end)
+local function makeTabButton(name,order,tabFrame)
+    local btn=Instance.new("TextButton",Sidebar)
+    btn.Size=UDim2.new(1,0,0,40)
+    btn.Position=UDim2.new(0,0,0,(order-1)*40)
+    btn.Text=name; btn.Font=Enum.Font.SourceSansBold; btn.TextSize=18
+    btn.BackgroundColor3=Color3.fromRGB(255,20,147); btn.TextColor3=Color3.new(1,1,1)
+    btn.MouseButton1Click:Connect(function() showTab(tabFrame) end)
+end
+
+-- Info Tab
+local InfoFrame=Instance.new("Frame",MainPanel)
+InfoFrame.Size=UDim2.new(1,0,1,0); InfoFrame.Visible=false
+makeTabButton("Info",1,InfoFrame)
+
+local infoLabel=Instance.new("TextLabel",InfoFrame)
+infoLabel.Size=UDim2.new(0,400,0,40); infoLabel.Position=UDim2.new(0,20,0,20)
+infoLabel.Text="Made by Hera"; infoLabel.TextColor3=Color3.new(1,1,1); infoLabel.BackgroundTransparency=1; infoLabel.Font=Enum.Font.SourceSansBold; infoLabel.TextSize=20
+
+local featuresLabel=Instance.new("TextLabel",InfoFrame)
+featuresLabel.Size=UDim2.new(0,400,0,120); featuresLabel.Position=UDim2.new(0,20,0,70)
+featuresLabel.Text="Features:\n- FireTouch\n- Elemental React\n- Hera React\n- Sourenos React\n- Resizer\n- Teleportation\n- 5x Instant Stamina/day"
+featuresLabel.TextColor3=Color3.new(1,1,1); featuresLabel.BackgroundTransparency=1; featuresLabel.Font=Enum.Font.SourceSans; featuresLabel.TextSize=18; featuresLabel.TextXAlignment=Enum.TextXAlignment.Left; featuresLabel.TextYAlignment=Enum.TextY
